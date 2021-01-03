@@ -3,19 +3,15 @@ require 'byebug'
 
 class MyRedis
 
-  # COMMAND = [
-  #   :get,
-  #   :set
-  # ]
-
-  COMMAND = [
-    :get,
-    :set
-  ]
   def initialize
     @socket = TCPServer.new 2000
     @data = {}
     @clients = []
+    @command_hash = {
+      get: -> (e) { handle_get(e) },
+      set: -> (e) { handle_set(e) }
+    }
+
     run
   end
 
@@ -28,27 +24,19 @@ class MyRedis
 
     loop do
       @clients.each do |client|
-
         input = client.read_nonblock(1024, exception: false)
 
-        if input == :wait_readable
-          next
-        else
-          client.puts handle_command(input)
-        end
+        next if input == :wait_readable
+        client.puts handle_command(input)
       end
     end
   end
 
   def handle_command(input)
-    command = input.split.first
+    command = input.split.first.to_sym
 
-    if COMMAND.include? command
-      if command == "get"
-        handle_get(input)
-      elsif command == "set"
-        handle_set(input)
-      end
+    if @command_hash.include? command
+      @command_hash[command].call(input)
     else
       "Wrong command"
     end
