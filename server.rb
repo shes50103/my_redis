@@ -2,6 +2,16 @@ require 'socket'
 require 'byebug'
 
 class MyRedis
+
+  # COMMAND = [
+  #   :get,
+  #   :set
+  # ]
+
+  COMMAND = [
+    :get,
+    :set
+  ]
   def initialize
     @socket = TCPServer.new 2000
     @data = {}
@@ -31,13 +41,28 @@ class MyRedis
   end
 
   def handle_command(input)
-    commands = input.split
-    if commands[0] == "get"
-      @data[commands[1]]
-    elsif commands[0] == "set"
-      @data[commands[1]] = commands[2]
-      "OK"
+    command = input.split.first
+
+    if COMMAND.include? command
+      if command == "get"
+        handle_get(input)
+      elsif command == "set"
+        handle_set(input)
+      end
+    else
+      "Wrong command"
     end
+  end
+
+  def handle_get(input)
+    _, key = input.split
+    @data[key]
+  end
+
+  def handle_set(input)
+    _, key, value = input.split
+    @data[key] = value
+    "OK"
   end
 end
 
